@@ -16,9 +16,10 @@ namespace DataAccess
 {
     public static class ServiceRegistration
     {
+
         public static void AddDataAccessServices(this IServiceCollection services)
         {
-            services.AddDbContext<Context>(options => options.UseNpgsql("User ID=postgres;Password=123456;Host=localhost;Port=5432;Database=DynamicObjectDB;"));
+            services.AddDbContext<Context>(options => options.UseNpgsql(Configuration.ConnectionString)); 
             services.AddScoped<IObjectSchemaReadRepository,ObjectSchemaReadRepository>();
             services.AddScoped<IObjectSchemaWriteRepository,ObjectSchemaWriteRepository>();
             services.AddScoped<IObjectDataReadRepository,ObjectDataReadRepository>();

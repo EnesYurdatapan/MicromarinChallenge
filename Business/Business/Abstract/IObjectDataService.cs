@@ -13,7 +13,7 @@ namespace Business.Abstract
     {
         Task<bool> AddAsync(AddObjectDataDTO addObjectDataDTO);
         bool Update(UpdateObjectDataDTO updateObjectDataDTO);
-        bool Delete(int id);
+        void Delete(int id);
         Task<ObjectData> GetById(int id);
         List<ObjectData> GetAll();
         Task<List<ObjectData>> GetFilteredDataAsync(string objectType, dynamic filters);

@@ -43,6 +43,7 @@ namespace DataAccess.Concrete
         {
             var entity = Table.FirstOrDefault(x => x.Id == id);
             EntityEntry<T> entityEntry = Table.Remove(entity);
+            _context.SaveChanges();
             return entityEntry.State == EntityState.Deleted;
         }
 

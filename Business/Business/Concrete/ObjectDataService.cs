@@ -1,4 +1,5 @@
 ﻿using Business.Abstract;
+using Core.Helpers;
 using DataAccess.Abstract.EntityFramework.ObjectDataRepositories;
 using DataAccess.Abstract.EntityFramework.ObjectSchemaRepositories;
 using Entities;
@@ -30,8 +31,8 @@ namespace Business.Concrete
             _objectSchemaService = objectSchemaService;
             _validationService = validationService;
         }
-        [ServiceFilter(typeof(TransactionInterceptor))]
 
+        [ServiceFilter(typeof(TransactionInterceptor))]
         public async Task<bool> AddAsync(AddObjectDataDTO addObjectDataDTO)
         {
             // Ana ObjectSchema'yı alıyoruz
@@ -64,8 +65,8 @@ namespace Business.Concrete
             {
                 ObjectType = addObjectDataDTO.ObjectType,
                 Data = addObjectDataDTO.Data,
-                CreatedDate = DateTime.Now,
-                UpdatedDate = DateTime.Now,
+                CreatedDate = DateTime.UtcNow,
+                UpdatedDate = DateTime.UtcNow,
             });
 
             // Alt nesneleri de veritabanına kaydedelim
@@ -78,22 +79,25 @@ namespace Business.Concrete
             return masterObjectAdded && subObjectsToAdd.Count == 0;
         }
 
-
-        public bool Delete(int id)
+        [ServiceFilter(typeof(TransactionInterceptor))]
+        public void Delete(int id)
         {
-            return _objectDataWriteRepository.Delete(id);
+            // 1. Ana ObjectData nesnesini bul
+            var mainObjectData = _objectDataReadRepository.GetWhere(o => o.Id == id).FirstOrDefault();
+
+            if (mainObjectData == null)
+            {
+                throw new Exception("Object not found.");
+            }
+
+            // 2. Alt nesneleri bul ve sil
+            DeleteSubObjects(mainObjectData);
+
+            // 3. Ana nesneyi sil
+            _objectDataWriteRepository.Delete(mainObjectData.Id);
         }
 
-        public List<ObjectData> GetAll()
-        {
-            return _objectDataReadRepository.GetAll().ToList();
-        }
-
-        public async Task<ObjectData> GetById(int id)
-        {
-            return await _objectDataReadRepository.GetByIdAsync(id);
-        }
-
+        [ServiceFilter(typeof(TransactionInterceptor))]
         public bool Update(UpdateObjectDataDTO updateObjectDataDTO)
         {
             var existingObjectData = _objectDataReadRepository
@@ -110,7 +114,7 @@ namespace Business.Concrete
 
             _validationService.ValidateData(updatedData, objectSchema);
 
-            
+
             _validationService.ValidateSubObjects(updatedData);
 
             foreach (var property in updatedData.Properties())
@@ -134,85 +138,81 @@ namespace Business.Concrete
             return true;
         }
 
+        public List<ObjectData> GetAll()
+        {
+            return _objectDataReadRepository.GetAll().ToList();
+        }
+
+        public async Task<ObjectData> GetById(int id)
+        {
+            return await _objectDataReadRepository.GetByIdAsync(id);
+        }
+
         public async Task<List<ObjectData>> GetFilteredDataAsync(string objectType, dynamic filters)
         {
-            // Veritabanından ObjectData objelerini alıyoruz
-            var objectDataList = await _objectDataReadRepository.GetWhere(o => o.ObjectType == objectType).ToListAsync();
+            var objectDataList = await _objectDataReadRepository
+                .GetWhere(o => o.ObjectType == objectType)
+                .ToListAsync();
 
             var filteredDataList = new List<ObjectData>();
+            JObject parsedFilters = JObject.Parse(filters.ToString());
 
             foreach (var objectData in objectDataList)
             {
                 JObject data = JObject.Parse(objectData.Data.ToString());
-                bool match = true;
 
-                // Filtrelerin her birini kontrol et
-                foreach (var filter in (JObject)JObject.Parse(filters.ToString())) // String olarak parse ediyoruz
-                {
-                    string propertyName = filter.Key; // Örneğin "Price" veya "Name"
-                    dynamic filterValue = filter.Value; // Filtredeki koşul
-
-                    // Şimdi veride ilgili alanı kontrol ediyoruz
-                    if (data[propertyName] != null)
-                    {
-                        // Örneğin, filterValue bir nesne ise (gt: 150 gibi)
-                        if (filterValue is JObject condition)
-                        {
-                            // Koşulu çözüyoruz (örneğin, gt, lt gibi işlemler burada yapılabilir)
-                            foreach (var conditionItem in condition)
-                            {
-                                var conditionType = conditionItem.Key;
-                                var conditionValue = conditionItem.Value;
-
-                                // Örneğin, "gt" koşulunu uygula
-                                if (conditionType == "gt" && (double)data[propertyName] <= (double)conditionValue)
-                                {
-                                    match = false;
-                                    break;
-                                }
-                                if (conditionType == "lt" && (double)data[propertyName] >= (double)conditionValue)
-                                {
-                                    match = false;
-                                    break;
-                                }
-                                // Diğer koşullar (eq, startsWith vb.)
-                                if (conditionType == "startsWith" && !((string)data[propertyName]).StartsWith((string)conditionValue))
-                                {
-                                    match = false;
-                                    break;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            // Basit eşleşme koşulu (örneğin, tam eşleşme)
-                            if ((string)data[propertyName] != (string)filterValue)
-                            {
-                                match = false;
-                                break;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // Eğer veride property yoksa, eşleşmeyi false yapıyoruz
-                        match = false;
-                        break;
-                    }
-                }
-
-                if (match)
+                if (FilterHelper.IsMatch(data, parsedFilters))
                 {
                     filteredDataList.Add(objectData);
                 }
             }
-            foreach (var item in filteredDataList)
-            {
-                item.Data = JObject.Parse(item.Data.ToString()); // Data'yı JObject'e çeviriyoruz
-            }
+
             return filteredDataList;
         }
 
+        private void DeleteSubObjects(ObjectData mainObjectData)
+        {
+            // Ana veriyi dynamic olarak parse ediyoruz
+            JObject mainData = JObject.Parse(mainObjectData.Data.ToString());
+
+            // Alt nesneleri JSON içinden alalım ve silelim
+            foreach (var property in mainData.Properties())
+            {
+                // Alt nesne array ise (örneğin birden fazla alt nesne mevcut)
+                if (property.Value.Type == JTokenType.Array)
+                {
+                    var subObjects = (JArray)property.Value;
+
+                    foreach (var subObject in subObjects)
+                    {
+                        DeleteSingleSubObject(JObject.Parse(subObject.ToString()));
+                    }
+                }
+                // Tek bir alt nesne ise
+                else if (property.Value.Type == JTokenType.Object)
+                {
+                    var subObject = (JObject)property.Value;
+                    DeleteSingleSubObject(subObject);
+                }
+            }
+        }
+
+        private void DeleteSingleSubObject(JObject subObject)
+        {
+            var subObjectId = subObject["Id"]?.Value<int>();
+
+            if (subObjectId.HasValue)
+            {
+                // Alt nesneyi veritabanından bul ve sil
+                var subObjectData = _objectDataReadRepository.GetWhere(o => o.Id == subObjectId.Value).FirstOrDefault();
+
+                if (subObjectData != null)
+                {
+                    // Silme işlemini gerçekleştir
+                    _objectDataWriteRepository.Delete(subObjectData.Id);
+                }
+            }
+        }
 
         private void UpdateOrCreateSubObject(UpdateObjectDataDTO updateObjectDataDTO)
         {
@@ -244,8 +244,6 @@ namespace Business.Concrete
             }
         }
 
-
-
         private bool IsSubObject(JToken token)
         {
             // Alt nesne, ObjectType ve Data içermelidir
@@ -256,6 +254,6 @@ namespace Business.Concrete
             }
             return false;
         }
-    
+
     }
 }
