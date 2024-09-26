@@ -2,6 +2,7 @@
 using Entities;
 using Entities.DTOs;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 
@@ -23,20 +24,31 @@ namespace WebAPI.Controllers
         [HttpPost("[action]")]
         public async Task<IActionResult> CreateObjectSchema([FromBody] AddObjectSchemaDTO addObjectSchemaDTO)
         {
-            await _schemaService.AddAsync(addObjectSchemaDTO);
-            return Ok();
+            var result = await _schemaService.AddAsync(addObjectSchemaDTO);
+            if (result==true)
+                return Ok(result);
+
+            return BadRequest(result);
+            
         }
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] AddObjectDataDTO addObjectDataDTO)
         {
-            await _dataService.AddAsync(addObjectDataDTO);
-            return Ok();
+            var result = await _dataService.AddAsync(addObjectDataDTO);
+            if (result == true)
+                return Ok(result);
+            
+            return BadRequest(result);
+
         }
         [HttpPut]
         public async Task<IActionResult> Put([FromBody] UpdateObjectDataDTO updateObjectDataDTO)
         {
-            _dataService.Update(updateObjectDataDTO);
-            return Ok();
+            var result = _dataService.Update(updateObjectDataDTO);
+            if (result==true)
+                return Ok();
+          
+            return BadRequest(result);
         }
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete([FromRoute] int id)
@@ -48,24 +60,30 @@ namespace WebAPI.Controllers
         public async Task<IActionResult> GetAll()
         {
             var result = _dataService.GetAll();
-            return Ok(result);
+            if (result!=null)
+                return Ok(result);
+
+            return BadRequest(result);
         }
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById([FromRoute] int id)
         {
-            _dataService.GetById(id);
-            return Ok();
+            var result = _dataService.GetById(id);
+            if (result != null)
+                return Ok(result);
+
+            return BadRequest(result);
         }
 
         [HttpPost("filter")]
         public async Task<IActionResult> FilterData([FromBody] FilteredObjectDTO filteredObjectDTO)
         {
             var filteredData = await _dataService.GetFilteredDataAsync(filteredObjectDTO.ObjectType, filteredObjectDTO.Filters);
-            return Ok(filteredData);
-        }
+            if (filteredData!=null)
+                return Ok(filteredData);
 
-        // Filtreleme isteği için model sınıfı
-    
+            return BadRequest(filteredData);
+        }
     }
 }
 
