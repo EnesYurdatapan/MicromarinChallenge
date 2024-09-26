@@ -15,6 +15,7 @@ namespace Business
         {
             services.AddScoped<IObjectSchemaService,ObjectSchemaService>();
             services.AddScoped<IObjectDataService,ObjectDataService>();
+            services.AddScoped<IValidationService,ValidationService>();
         }
     }
 }

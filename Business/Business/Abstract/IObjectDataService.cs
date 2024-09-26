@@ -1,4 +1,5 @@
 ﻿using Entities;
+using Entities.DTOs;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -10,9 +11,8 @@ namespace Business.Abstract
 {
     public interface IObjectDataService
     {
-        Task<bool> AddAsync(ObjectData objectData);
-        Task<bool> AddRangeAsync(List<ObjectData> objectData);
-        bool Update(ObjectData objectData);
+        Task<bool> AddAsync(AddObjectDataDTO addObjectDataDTO);
+        bool Update(UpdateObjectDataDTO updateObjectDataDTO);
         bool Delete(int id);
         Task<ObjectData> GetById(int id);
         List<ObjectData> GetAll();

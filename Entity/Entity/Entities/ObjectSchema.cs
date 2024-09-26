@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Entities
 {
-    public class ObjectSchema:BaseEntity
+    public class ObjectSchema: BaseEntity
     {
         public string ObjectType { get; set; }
         public dynamic Schema { get; set; }

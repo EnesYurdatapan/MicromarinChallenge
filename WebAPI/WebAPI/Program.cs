@@ -1,10 +1,32 @@
+using Autofac;
+using Autofac.Extensions.DependencyInjection;
+using Autofac.Extras.DynamicProxy;
 using Business;
+using Business.Abstract;
+using Business.Concrete;
 using Core.Extensions;
 using DataAccess;
+using Microsoft.AspNetCore.Hosting;
 using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
+builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
+
+// Configure Autofac container
+builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
+{
+    // Servisleri Autofac ile kayýt ediyoruz ve AOP için Aspect ekliyoruz
+    containerBuilder.RegisterType<ObjectDataService>()
+        .As<IObjectDataService>()
+        .EnableInterfaceInterceptors()
+        .InterceptedBy(typeof(TransactionAspect));
+
+  
+
+    containerBuilder.RegisterType<TransactionAspect>().SingleInstance(); // Transaction Aspect'i kaydediyoruz
+});
 // Add services to the container.
 
 builder.Services.AddBusinessServices();
@@ -41,3 +63,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+

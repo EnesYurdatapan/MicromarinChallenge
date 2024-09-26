@@ -2,6 +2,7 @@
 using DataAccess.Abstract.EntityFramework.ObjectDataRepositories;
 using DataAccess.Abstract.EntityFramework.ObjectSchemaRepositories;
 using Entities;
+using Entities.DTOs;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
 using System;
@@ -23,9 +24,13 @@ namespace Business.Concrete
             _objectSchemaReadRepository = objectSchemaReadRepository;
         }
 
-        public async Task<bool> AddAsync(ObjectSchema objectSchema)
+        public async Task<bool> AddAsync(AddObjectSchemaDTO addObjectSchemaDTO)
         {
-           return await _objectSchemaWriteRepository.AddAsync(objectSchema);
+           return await _objectSchemaWriteRepository.AddAsync(new ObjectSchema()
+           {
+               ObjectType = addObjectSchemaDTO.ObjectType,
+              Schema = addObjectSchemaDTO.Schema,
+           });
         }
 
         public async Task<bool> AddRangeAsync(List<ObjectSchema> objectSchema)
@@ -52,14 +57,14 @@ namespace Business.Concrete
         {
             return _objectSchemaWriteRepository.UpdateAsync(objectSchema);
         }
-        public ObjectSchema GetObjectSchema(string objectType)
+        public JObject GetObjectSchema(string objectType)
         {
             var objectSchema =  _objectSchemaReadRepository.GetWhere(o => o.ObjectType == objectType).FirstOrDefault();
             if (objectSchema == null)
             {
                 throw new Exception("Schema not found.");
             }
-            return objectSchema;
+            return JObject.Parse(objectSchema.Schema.ToString());
         }
     }
 }

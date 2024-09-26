@@ -1,5 +1,6 @@
 ﻿using Business.Abstract;
 using Entities;
+using Entities.DTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
@@ -20,21 +21,21 @@ namespace WebAPI.Controllers
         }
 
         [HttpPost("[action]")]
-        public async Task<IActionResult> CreateObjectSchema([FromBody] ObjectSchema objectSchema)
+        public async Task<IActionResult> CreateObjectSchema([FromBody] AddObjectSchemaDTO addObjectSchemaDTO)
         {
-            await _schemaService.AddAsync(objectSchema);
+            await _schemaService.AddAsync(addObjectSchemaDTO);
             return Ok();
         }
         [HttpPost]
-        public async Task<IActionResult> Post([FromBody] ObjectData objectData)
+        public async Task<IActionResult> Post([FromBody] AddObjectDataDTO addObjectDataDTO)
         {
-            await _dataService.AddAsync(objectData);
+            await _dataService.AddAsync(addObjectDataDTO);
             return Ok();
         }
         [HttpPut]
-        public async Task<IActionResult> Put([FromBody] ObjectData objectData)
+        public async Task<IActionResult> Put([FromBody] UpdateObjectDataDTO updateObjectDataDTO)
         {
-            _dataService.Update(objectData);
+            _dataService.Update(updateObjectDataDTO);
             return Ok();
         }
         [HttpDelete("{id}")]
@@ -57,18 +58,14 @@ namespace WebAPI.Controllers
         }
 
         [HttpPost("filter")]
-        public async Task<IActionResult> FilterData([FromBody] FilterRequest filterRequest)
+        public async Task<IActionResult> FilterData([FromBody] FilteredObjectDTO filteredObjectDTO)
         {
-            var filteredData = await _dataService.GetFilteredDataAsync(filterRequest.ObjectType, filterRequest.Filters);
+            var filteredData = await _dataService.GetFilteredDataAsync(filteredObjectDTO.ObjectType, filteredObjectDTO.Filters);
             return Ok(filteredData);
         }
 
         // Filtreleme isteği için model sınıfı
-        public class FilterRequest
-        {
-            public string ObjectType { get; set; }  // Product, Order vs.
-            public dynamic Filters { get; set; }    // Dinamik filtreler (JSON formatında)
-        }
+    
     }
 }
 
