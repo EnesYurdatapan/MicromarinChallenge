@@ -57,14 +57,12 @@
 -   The master-object and sub-objects in the incoming request are
     validated. If no problems occur, they are added to the database.
 
-![](WebAPI/WebAPI/Images/DBAfterAdding.png) Image 5 : Display of Database after
-> adding data
+![](WebAPI/WebAPI/Images/DBAfterAdding.png) Image 5 : Display of Database after adding data
 
 -   If there is a problem with the validation of the master-object and
     sub-object, the Global Exception Handler throws an error.
 
-![](WebAPI/WebAPI/Images/AddingDataErrorResponse.png) Image 6 : Exception result of
-> validation errors
+![](WebAPI/WebAPI/Images/AddingDataErrorResponse.png) Image 6 : Exception result of validation errors
 
 ## 
 
@@ -97,5 +95,4 @@
 ![](WebAPI/WebAPI/Images/DBAfterDeleting.png) Image 11 : Database after Deleting
 Master-Object and Its Sub-Objects
 
-![](WebAPI/WebAPI/Images/Swagger.png){width="6.260415573053368in"
-height="2.2916666666666665in"}
+![](WebAPI/WebAPI/Images/Swagger.png)
