@@ -38,7 +38,7 @@
     JSON. The fields required for validation must also be sent in
     JSON.("required":)
 
-![](WebAPI/Images/ObjectSchemaAddRequest.png) Image 1 : CreateObjectSchema request
+![](WebAPI/WebAPI/Images/ObjectSchemaAddRequest.png) Image 1 : CreateObjectSchema request
 
 -   The schema sent with the request is stored in the ObjectSchema
     table.
