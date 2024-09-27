@@ -38,8 +38,7 @@
     JSON. The fields required for validation must also be sent in
     JSON.("required":)
 
-![](./6c00772584c63331cd36e4c6812e70c6f537846d.png){width="6.260415573053368in"
-height="3.0208333333333335in"} Image 1 : CreateObjectSchema request
+![](Images/ObjectSchemaAddRequest.png) Image 1 : CreateObjectSchema request
 
 -   The schema sent with the request is stored in the ObjectSchema
     table.
