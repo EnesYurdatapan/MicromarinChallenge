@@ -27,14 +27,17 @@ namespace WebAPI.Controllers
         [HttpPost("[action]")]
         public async Task<IActionResult> CreateObjectSchema([FromBody] AddObjectSchemaDTO? schemaDto)
         {
-            var fields = schemaDto.Fields.Select(f => new Field
+            if (string.IsNullOrEmpty(schemaDto.ObjectType) || schemaDto.Fields == null || schemaDto.Fields.Count == 0)
             {
-                FieldName = f.FieldName,
-                FieldType = f.FieldType,
-                IsRequired = f.IsRequired
-            }).ToList();
+                return BadRequest("Invalid request. ObjectType or Fields are missing.");
+            }
 
-            var schema = await _schemaService.CreateObjectSchemaAsync(schemaDto.ObjectType, fields);
+            // ObjectSchema'yı oluştur
+            var schema = await _schemaService.CreateObjectSchemaAsync(schemaDto.ObjectType, schemaDto.Fields);
+
+            // Şema oluşturulduktan sonra tabloyu yarat
+            await _dynamicTableService.CreateTableFromSchemaAsync(schemaDto.ObjectType, schemaDto.Fields.ToDictionary(f => f.FieldName, f => (object)f.FieldType));
+
             return Ok(schema);
         }
 
@@ -47,15 +50,6 @@ namespace WebAPI.Controllers
             if (string.IsNullOrEmpty(objectType) || fields == null)
             {
                 return BadRequest("Invalid request. ObjectType or Data is missing.");
-            }
-
-            // Veritabanında tablo olup olmadığını kontrol ediyoruz
-            bool tableExists = await _dynamicTableService.TableExistsAsync(objectType);
-
-            if (!tableExists)
-            {
-                // Eğer tablo daha önce oluşturulmamışsa, tabloyu oluşturuyoruz
-                await _dynamicTableService.CreateTableFromSchemaAsync(objectType, fields);
             }
 
             // Veriyi ilgili tabloya ekliyoruz
@@ -109,6 +103,26 @@ namespace WebAPI.Controllers
             catch (Exception ex)
             {
                 return BadRequest($"Error deleting data: {ex.Message}");
+            }
+        }
+
+        [HttpGet("{objectType}/{id?}")]
+        public async Task<IActionResult> GetObjectByTypeAndFilters([FromRoute] string objectType, [FromRoute] int? id, [FromQuery] Dictionary<string, string> filters)
+        {
+            try
+            {
+                var result = await _dynamicTableService.GetObjectsByTypeAndFiltersAsync(objectType, id, filters);
+
+                if (result == null || !result.Any())
+                {
+                    return NotFound();
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
     }

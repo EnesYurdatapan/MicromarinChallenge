@@ -14,7 +14,7 @@ namespace Business.Abstract
 {
     public interface IObjectSchemaService
     {
-        Task<ObjectSchema> CreateObjectSchemaAsync(string objectType, List<Field> fields);
+        Task<ObjectSchema> CreateObjectSchemaAsync(string objectType, IList<Field> fields);
         Task<ObjectSchema> GetObjectSchemaAsync(int id);
         Task<List<ObjectSchema>> GetAllObjectSchemasAsync();
         Task UpdateObjectSchemaAsync(ObjectSchema objectSchema);

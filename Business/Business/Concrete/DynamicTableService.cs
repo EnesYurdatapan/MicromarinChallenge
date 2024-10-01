@@ -155,17 +155,87 @@ namespace Business.Concrete
             await _context.Database.ExecuteSqlRawAsync(sb.ToString());
         }
 
+        public async Task<List<Dictionary<string, object>>> GetObjectsByTypeAndFiltersAsync(string objectType, int? id, Dictionary<string, string> filters)
+        {
+            // SQL sorgusunu oluşturmak için StringBuilder kullanıyoruz
+            var sb = new StringBuilder();
+
+            // Gelen objectType'a göre tablodan veri çekiyoruz
+            sb.Append($"SELECT * FROM \"{objectType}\"");
+
+            // Eğer id parametresi gelmişse ona göre sorgu ekliyoruz
+            if (id.HasValue)
+            {
+                sb.Append($" WHERE Id = {id.Value}");
+            }
+            else if (filters != null && filters.Any())
+            {
+                sb.Append(" WHERE ");
+
+                // Filtreleri dinamik olarak ekliyoruz
+                foreach (var filter in filters)
+                {
+                    string columnName = filter.Key;
+                    object columnValue = filter.Value;
+
+                    // String ya da tarih gibi tiplerde veriyi tırnak içinde yazıyoruz
+                    if (columnValue is string || columnValue is DateTime)
+                    {
+                        sb.Append($"\"{columnName}\" = '{columnValue}' AND ");
+                    }
+                    else
+                    {
+                        sb.Append($"\"{columnName}\" = {columnValue} AND ");
+                    }
+                }
+
+                // Son eklenen AND ifadesini kaldırıyoruz
+                sb.Length -= 5; // " AND " ifadesini kaldırmak için
+            }
+
+            sb.Append(";"); // Sorguyu bitiriyoruz
+
+            var results = new List<Dictionary<string, object>>();
+
+            // SQL sorgusunu manuel çalıştırmak için ADO.NET kullanıyoruz
+            using (var connection = _context.Database.GetDbConnection())
+            {
+                await connection.OpenAsync();
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = sb.ToString();
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            var row = new Dictionary<string, object>();
+                            for (var i = 0; i < reader.FieldCount; i++)
+                            {
+                                row[reader.GetName(i)] = reader.GetValue(i);
+                            }
+                            results.Add(row);
+                        }
+                    }
+                }
+            }
+
+            return results;
+        }
+
+
+
         private string GetSqlTypeFromValue(object value)
         {
-            // Gelen değer tipine göre SQL veri tipini döndürüyoruz
-            return value switch
+            // Gelen fieldType string olduğunda uygun SQL veri tipini döndürüyoruz
+            return value.ToString().ToLower() switch
             {
-                int => "INT",
-                long => "BIGINT",
-                double => "DOUBLE PRECISION",
-                decimal => "DECIMAL",
-                bool => "BOOLEAN",
-                DateTime => "TIMESTAMP",
+                "int" => "INT",
+                "bigint" => "BIGINT",
+                "double" => "DOUBLE PRECISION",
+                "decimal" => "DECIMAL",
+                "bool" => "BOOLEAN",
+                "datetime" => "TIMESTAMP",
+                "string" => "TEXT", // VARCHAR kullanmak isterseniz VARCHAR olarak da değiştirebilirsiniz
                 _ => "TEXT" // Varsayılan olarak TEXT kullanıyoruz
             };
         }

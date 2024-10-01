@@ -24,7 +24,7 @@ namespace Business.Concrete
             _context = context;
         }
 
-        public async Task<ObjectSchema> CreateObjectSchemaAsync(string objectType, List<Field> fields)
+        public async Task<ObjectSchema> CreateObjectSchemaAsync(string objectType, IList<Field> fields)
         {
             var schema = new ObjectSchema
             {

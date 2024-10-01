@@ -13,6 +13,6 @@ namespace Entities.DTOs
         public string ObjectType { get; set; }
 
         // Bu obje tipi için tanımlı olan field'lar (ilişkili alanlar)
-        public virtual ICollection<Field> Fields { get; set; } = new List<Field>();
+        public virtual IList<Field> Fields { get; set; } = new List<Field>();
     }
 }
