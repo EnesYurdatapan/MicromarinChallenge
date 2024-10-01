@@ -1,6 +1,7 @@
 ﻿using Business.Concrete;
 using Entities;
 using Entities.DTOs;
+using Entities.Entities;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -13,12 +14,10 @@ namespace Business.Abstract
 {
     public interface IObjectSchemaService
     {
-        Task<bool> AddAsync(AddObjectSchemaDTO addObjectSchemaDTO);
-        Task<bool> AddRangeAsync(List<ObjectSchema> objectSchema);
-        bool Update(ObjectSchema objectSchema);
-        bool Delete(int id);
-        Task<ObjectSchema> GetById(int id);
-        List<ObjectSchema> GetAll();
-        JObject GetObjectSchema(string objectType);
+        Task<ObjectSchema> CreateObjectSchemaAsync(string objectType, List<Field> fields);
+        Task<ObjectSchema> GetObjectSchemaAsync(int id);
+        Task<List<ObjectSchema>> GetAllObjectSchemasAsync();
+        Task UpdateObjectSchemaAsync(ObjectSchema objectSchema);
+        Task DeleteObjectSchemaAsync(int id);
     }
 }

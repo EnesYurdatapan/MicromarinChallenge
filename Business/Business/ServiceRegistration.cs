@@ -14,8 +14,8 @@ namespace Business
         public static void AddBusinessServices(this IServiceCollection services)
         {
             services.AddScoped<IObjectSchemaService,ObjectSchemaService>();
-            services.AddScoped<IObjectDataService,ObjectDataService>();
-            services.AddScoped<IValidationService,ValidationService>();
+            services.AddScoped<IDynamicTableService,DynamicTableService>();
+            //services.AddScoped<IValidationService,ValidationService>();
         }
     }
 }

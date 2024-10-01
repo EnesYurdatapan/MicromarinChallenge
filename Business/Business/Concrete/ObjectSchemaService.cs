@@ -1,8 +1,10 @@
 ﻿using Business.Abstract;
+using DataAccess;
 using DataAccess.Abstract.EntityFramework.ObjectDataRepositories;
 using DataAccess.Abstract.EntityFramework.ObjectSchemaRepositories;
 using Entities;
 using Entities.DTOs;
+using Entities.Entities;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
 using System;
@@ -15,56 +17,55 @@ namespace Business.Concrete
 {
     public class ObjectSchemaService : IObjectSchemaService
     {
-        private readonly IObjectSchemaWriteRepository _objectSchemaWriteRepository;
-        private readonly IObjectSchemaReadRepository _objectSchemaReadRepository;
+        private readonly Context _context;
 
-        public ObjectSchemaService(IObjectSchemaWriteRepository objectSchemaWriteRepository, IObjectSchemaReadRepository objectSchemaReadRepository)
+        public ObjectSchemaService(Context context)
         {
-            _objectSchemaWriteRepository = objectSchemaWriteRepository;
-            _objectSchemaReadRepository = objectSchemaReadRepository;
+            _context = context;
         }
 
-        public async Task<bool> AddAsync(AddObjectSchemaDTO addObjectSchemaDTO)
+        public async Task<ObjectSchema> CreateObjectSchemaAsync(string objectType, List<Field> fields)
         {
-           return await _objectSchemaWriteRepository.AddAsync(new ObjectSchema()
-           {
-               ObjectType = addObjectSchemaDTO.ObjectType,
-              Schema = addObjectSchemaDTO.Schema,
-           });
-        }
-
-        public async Task<bool> AddRangeAsync(List<ObjectSchema> objectSchema)
-        {
-            return await _objectSchemaWriteRepository.AddRangeAsync(objectSchema);
-        }
-
-        public bool Delete(int id)
-        {
-            return _objectSchemaWriteRepository.Delete(id);
-        }
-
-        public List<ObjectSchema> GetAll()
-        {
-            return _objectSchemaReadRepository.GetAll().ToList();
-        }
-
-        public async Task<ObjectSchema> GetById(int id)
-        {
-            return await _objectSchemaReadRepository.GetByIdAsync(id);
-        }
-
-        public bool Update(ObjectSchema objectSchema)
-        {
-            return _objectSchemaWriteRepository.UpdateAsync(objectSchema);
-        }
-        public JObject GetObjectSchema(string objectType)
-        {
-            var objectSchema =  _objectSchemaReadRepository.GetWhere(o => o.ObjectType == objectType).FirstOrDefault();
-            if (objectSchema == null)
+            var schema = new ObjectSchema
             {
-                throw new Exception("Schema not found.");
+                ObjectType = objectType,
+                Fields = fields
+            };
+
+            _context.ObjectSchemas.Add(schema);
+            await _context.SaveChangesAsync();
+
+            return schema;
+        }
+
+        public async Task<ObjectSchema> GetObjectSchemaAsync(int id)
+        {
+            return await _context.ObjectSchemas
+                .Include(os => os.Fields)
+                .FirstOrDefaultAsync(os => os.Id == id);
+        }
+
+        public async Task<List<ObjectSchema>> GetAllObjectSchemasAsync()
+        {
+            return await _context.ObjectSchemas
+                .Include(os => os.Fields)
+                .ToListAsync();
+        }
+
+        public async Task UpdateObjectSchemaAsync(ObjectSchema objectSchema)
+        {
+            _context.ObjectSchemas.Update(objectSchema);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task DeleteObjectSchemaAsync(int id)
+        {
+            var schema = await _context.ObjectSchemas.FindAsync(id);
+            if (schema != null)
+            {
+                _context.ObjectSchemas.Remove(schema);
+                await _context.SaveChangesAsync();
             }
-            return JObject.Parse(objectSchema.Schema.ToString());
         }
     }
 }

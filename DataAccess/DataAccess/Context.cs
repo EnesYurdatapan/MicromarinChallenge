@@ -1,4 +1,5 @@
 ﻿using Entities;
+using Entities.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System;
@@ -14,19 +15,24 @@ namespace DataAccess
         public Context(DbContextOptions options) : base(options)
         {
         }
-        public DbSet<ObjectData> ObjectDatas { get; set; }
         public DbSet<ObjectSchema> ObjectSchemas { get; set; }
+        public DbSet<Field> Fields { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<ObjectData>()
-                .Property(e => e.Data)
-                .HasColumnType("jsonb");
+            base.OnModelCreating(modelBuilder);
 
+            // ObjectSchema - Field ilişkisi
             modelBuilder.Entity<ObjectSchema>()
-              .Property(e => e.Schema)
-              .HasColumnType("jsonb");
+                .HasMany(os => os.Fields)
+                .WithOne(f => f.ObjectSchema)
+                .HasForeignKey(f => f.ObjectSchemaId);
+        }
+
+        public DbSet<dynamic> GetDbSet(string tableName)
+        {
+            return (DbSet<dynamic>)this.GetType().GetProperty(tableName).GetValue(this);
         }
     }
 }

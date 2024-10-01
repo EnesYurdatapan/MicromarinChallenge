@@ -15,18 +15,18 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
 
 // Configure Autofac container
-builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
-{
-    // Servisleri Autofac ile kayýt ediyoruz ve AOP için Aspect ekliyoruz
-    containerBuilder.RegisterType<ObjectDataService>()
-        .As<IObjectDataService>()
-        .EnableInterfaceInterceptors()
-        .InterceptedBy(typeof(TransactionAspect));
+//builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
+//{
+//    // Servisleri Autofac ile kayýt ediyoruz ve AOP için Aspect ekliyoruz
+//    containerBuilder.RegisterType<ObjectDataService>()
+//        .As<IObjectDataService>()
+//        .EnableInterfaceInterceptors()
+//        .InterceptedBy(typeof(TransactionAspect));
 
   
 
-    containerBuilder.RegisterType<TransactionAspect>().SingleInstance(); // Transaction Aspect'i kaydediyoruz
-});
+//    containerBuilder.RegisterType<TransactionAspect>().SingleInstance(); // Transaction Aspect'i kaydediyoruz
+//});
 // Add services to the container.
 
 builder.Services.AddBusinessServices();
