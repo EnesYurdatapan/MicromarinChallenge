@@ -1,5 +1,6 @@
 ﻿using Business.Abstract;
 using DataAccess;
+using Entities.Entities;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
 using System;
@@ -20,41 +21,94 @@ namespace Business.Concrete
         }
 
         // Insert işlemi
-        public async Task InsertDataAsync(string objectType, Dictionary<string, object> fields)
+        public async Task InsertDataAsync(string objectType, Dictionary<string, object> fields, int? parentId = null, string parentFieldName = null)
         {
-            // SQL sorgusunu oluşturmak için StringBuilder kullanıyoruz
             var sb = new StringBuilder();
-
-            // Tabloya insert işlemi için SQL cümlesi oluşturuluyor
-            sb.Append($"INSERT INTO \"{objectType}\" (");
-
-            // Sütun adlarını ekliyoruz
-            foreach (var field in fields)
-            {
-                sb.Append($"\"{field.Key}\", ");
-            }
-
-            // Son virgülü kaldırıyoruz ve VALUES kısmını ekliyoruz
-            sb.Length -= 2;
-            sb.Append(") VALUES (");
-
-            // Değerler placeholder olarak ekleniyor (örneğin, @p0, @p1, vb.)
             var parameters = new List<object>();
             int paramIndex = 0;
+
+            // 1. Get the schema for the objectType (this should be retrieved from your ObjectSchema table)
+            var schema = await _context.ObjectSchemas
+                                       .Include(s => s.Fields)
+                                       .FirstOrDefaultAsync(s => s.ObjectType == objectType);
+
+            if (schema == null)
+            {
+                throw new Exception($"Schema for object type {objectType} not found.");
+            }
+
+            // 2. Build the SQL insert statement for the non-relational fields
+            sb.Append($"INSERT INTO \"{objectType}\" (");
+
             foreach (var field in fields)
             {
-                sb.Append($"@p{paramIndex}, ");
-                parameters.Add(field.Value);
+                // Check if this field is a relationship (array of child objects)
+                if (field.Value is JArray childItems)
+                {
+                    // For each item in the array, call InsertDataAsync recursively to handle child records
+                    foreach (var childItem in childItems)
+                    {
+                        if (childItem is JObject childObject)
+                        {
+                            var childFields = childObject.ToObject<Dictionary<string, object>>();
+                            var childSchema = schema.Fields.FirstOrDefault(f => f.FieldName == field.Key);
+
+                            if (childSchema != null && childSchema.ForeignKeyTable != null)
+                            {
+                                // Recursively insert child data into the related table
+                                await InsertDataAsync(childSchema.ForeignKeyTable, childFields, parentId, schema.ObjectType + "Id");
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // Add the non-relational field to the SQL statement
+                    sb.Append($"\"{field.Key}\", ");
+                    parameters.Add(field.Value);
+                    paramIndex++;
+                }
+            }
+
+            // 3. Add the foreign key column if this is a child record
+            if (parentId.HasValue && !string.IsNullOrEmpty(parentFieldName))
+            {
+                sb.Append($"\"{parentFieldName}\", ");
+                parameters.Add(parentId.Value);
                 paramIndex++;
             }
 
-            // Son virgülü kaldırıyoruz ve sorguyu kapatıyoruz
+            // Remove the last comma and space, then close the field section
+            sb.Length -= 2;
+            sb.Append(") VALUES (");
+
+            // Add the parameter placeholders
+            for (int i = 0; i < paramIndex; i++)
+            {
+                sb.Append($"@p{i}, ");
+            }
+
+            // Remove the last comma and space, then close the VALUES section
             sb.Length -= 2;
             sb.Append(");");
 
-            // SQL sorgusunu parametrelerle birlikte çalıştırıyoruz
+            // 4. Execute the SQL insert statement
             await _context.Database.ExecuteSqlRawAsync(sb.ToString(), parameters.ToArray());
+
+            // 5. After the insert, you might need to return the ID of the inserted record to link with child data
         }
+
+
+
+
+
+        private async Task ExecuteInsertAsync(string query, List<object> parameters)
+        {
+            // SQL sorgusunu parametrelerle birlikte çalıştırıyoruz
+            Console.WriteLine(query);
+            await _context.Database.ExecuteSqlRawAsync(query, parameters.ToArray());
+        }
+
 
 
 
@@ -127,33 +181,29 @@ namespace Business.Concrete
             return entity;
         }
 
-        public async Task CreateTableFromSchemaAsync(string objectType, Dictionary<string, object> fields)
+        public async Task CreateTableFromSchemaAsync(string objectType, Dictionary<string, string> fields)
         {
-            // SQL sorgusunu oluşturmak için StringBuilder kullanıyoruz
             var sb = new StringBuilder();
 
             sb.Append($"CREATE TABLE IF NOT EXISTS \"{objectType}\" (");
 
-            // İlk sütunu (id) primary key olarak tanımlıyoruz
             sb.Append("Id SERIAL PRIMARY KEY, ");
 
-            // Gelen field'lar için kolonları ekliyoruz
             foreach (var field in fields)
             {
                 string columnName = field.Key;
                 string columnType = GetSqlTypeFromValue(field.Value);
 
-                // Her bir field'ı SQL cümlesine ekliyoruz
                 sb.Append($"\"{columnName}\" {columnType}, ");
             }
 
-            // Son virgülü kaldırıyoruz ve parantezi kapatıyoruz
-            sb.Length -= 2; // Son iki karakteri (virgül ve boşluk) siliyoruz
+            sb.Length -= 2; // Son virgülü kaldırıyoruz
             sb.Append(");");
 
-            // SQL sorgusunu çalıştırıyoruz
             await _context.Database.ExecuteSqlRawAsync(sb.ToString());
         }
+
+
 
         public async Task<List<Dictionary<string, object>>> GetObjectsByTypeAndFiltersAsync(string objectType, int? id, Dictionary<string, string> filters)
         {
@@ -245,6 +295,25 @@ namespace Business.Concrete
             var result = await _context.Database.ExecuteSqlRawAsync($"SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = '{tableName.ToLower()}');");
             return result == 1;
         }
+
+        public async Task CreateForeignKeyAsync(string parentTable, string childTable, string foreignKeyField)
+        {
+            // Foreign key adını oluşturuyoruz
+            var foreignKeyName = $"FK_{parentTable}_{childTable}";
+
+            // SQL sorgusu ile foreign key eklenmesi
+            var sql = $@"
+        ALTER TABLE ""{parentTable}""
+        ADD CONSTRAINT ""{foreignKeyName}""
+        FOREIGN KEY (""{foreignKeyField}"")
+        REFERENCES ""{childTable}"" (""Id"")
+        ON DELETE CASCADE;
+    ";
+
+            // Foreign key ekleme işlemi
+            await _context.Database.ExecuteSqlRawAsync(sql);
+        }
+
 
     }
 

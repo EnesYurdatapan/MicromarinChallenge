@@ -1,6 +1,4 @@
-﻿using DataAccess.Abstract.EntityFramework.ObjectDataRepositories;
-using DataAccess.Abstract.EntityFramework.ObjectSchemaRepositories;
-using DataAccess.Concrete.EntityFramework.ObjectDataRepositories;
+﻿using DataAccess.Abstract.EntityFramework.ObjectSchemaRepositories;
 using DataAccess.Concrete.EntityFramework.ObjectSchemaRepositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -22,10 +20,7 @@ namespace DataAccess
             services.AddDbContext<Context>(options => options.UseNpgsql(Configuration.ConnectionString)); 
             services.AddScoped<IObjectSchemaReadRepository,ObjectSchemaReadRepository>();
             services.AddScoped<IObjectSchemaWriteRepository,ObjectSchemaWriteRepository>();
-            services.AddScoped<IObjectDataReadRepository,ObjectDataReadRepository>();
-            services.AddScoped<IObjectDataWriteRepository,ObjectDataWriteRepository>();
 
-            services.AddScoped<TransactionInterceptor>();
         }
     }
 }

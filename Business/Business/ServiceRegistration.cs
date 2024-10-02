@@ -15,7 +15,6 @@ namespace Business
         {
             services.AddScoped<IObjectSchemaService,ObjectSchemaService>();
             services.AddScoped<IDynamicTableService,DynamicTableService>();
-            //services.AddScoped<IValidationService,ValidationService>();
         }
     }
 }

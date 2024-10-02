@@ -7,10 +7,9 @@ using System.Threading.Tasks;
 
 namespace Entities.Entities
 {
-    public class Field:BaseEntity
+    public class Field : BaseEntity
     {
-
-        // Bu alanın hangi şemaya ait olduğunu belirler
+        // Bu alanın hangi şemaya ait olduğunu belirler (Foreign Key)
         public int ObjectSchemaId { get; set; }
 
         // Şema ile ilişki (Foreign Key)
@@ -28,6 +27,16 @@ namespace Entities.Entities
 
         // Alanın uzunluğu (opsiyonel)
         public int? MaxLength { get; set; }
+
+        // Alt şema (ilişkili başka bir tablo) varsa burada tanımlanacak
+        public int? ChildSchemaId { get; set; }
+
+        // Eğer bir alt şema varsa (relationship) buradan ilişkilendiriyoruz
+        public virtual ObjectSchema? ChildSchema { get; set; }
+
+        // Eğer bu alan bir foreign key ise, hedef tablonun adı tutulur
+        public string? ForeignKeyTable { get; set; }
     }
+
 
 }

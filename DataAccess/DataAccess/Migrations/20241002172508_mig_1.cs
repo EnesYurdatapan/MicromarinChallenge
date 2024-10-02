@@ -34,11 +34,18 @@ namespace DataAccess.Migrations
                     FieldName = table.Column<string>(type: "text", nullable: false),
                     FieldType = table.Column<string>(type: "text", nullable: false),
                     IsRequired = table.Column<bool>(type: "boolean", nullable: false),
-                    MaxLength = table.Column<int>(type: "integer", nullable: true)
+                    MaxLength = table.Column<int>(type: "integer", nullable: true),
+                    ChildSchemaId = table.Column<int>(type: "integer", nullable: true),
+                    ForeignKeyTable = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Fields", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Fields_ObjectSchemas_ChildSchemaId",
+                        column: x => x.ChildSchemaId,
+                        principalTable: "ObjectSchemas",
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Fields_ObjectSchemas_ObjectSchemaId",
                         column: x => x.ObjectSchemaId,
@@ -46,6 +53,11 @@ namespace DataAccess.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Fields_ChildSchemaId",
+                table: "Fields",
+                column: "ChildSchemaId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Fields_ObjectSchemaId",

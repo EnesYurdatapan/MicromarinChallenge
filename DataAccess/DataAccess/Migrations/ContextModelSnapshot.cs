@@ -30,12 +30,18 @@ namespace DataAccess.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("ChildSchemaId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("FieldName")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("FieldType")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ForeignKeyTable")
                         .HasColumnType("text");
 
                     b.Property<bool>("IsRequired")
@@ -48,6 +54,8 @@ namespace DataAccess.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ChildSchemaId");
 
                     b.HasIndex("ObjectSchemaId");
 
@@ -73,11 +81,17 @@ namespace DataAccess.Migrations
 
             modelBuilder.Entity("Entities.Entities.Field", b =>
                 {
+                    b.HasOne("Entities.ObjectSchema", "ChildSchema")
+                        .WithMany()
+                        .HasForeignKey("ChildSchemaId");
+
                     b.HasOne("Entities.ObjectSchema", "ObjectSchema")
                         .WithMany("Fields")
                         .HasForeignKey("ObjectSchemaId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("ChildSchema");
 
                     b.Navigation("ObjectSchema");
                 });

@@ -35,8 +35,6 @@ namespace WebAPI.Controllers
             // ObjectSchema'yı oluştur
             var schema = await _schemaService.CreateObjectSchemaAsync(schemaDto.ObjectType, schemaDto.Fields);
 
-            // Şema oluşturulduktan sonra tabloyu yarat
-            await _dynamicTableService.CreateTableFromSchemaAsync(schemaDto.ObjectType, schemaDto.Fields.ToDictionary(f => f.FieldName, f => (object)f.FieldType));
 
             return Ok(schema);
         }
@@ -45,7 +43,7 @@ namespace WebAPI.Controllers
         public async Task<IActionResult> Create([FromBody] JObject requestData)
         {
             string objectType = requestData["objectType"]?.ToString();
-            var fields = requestData["data"]?.ToObject<Dictionary<string, object>>();
+            var fields = requestData["fields"]?.ToObject<Dictionary<string, object>>();
 
             if (string.IsNullOrEmpty(objectType) || fields == null)
             {
